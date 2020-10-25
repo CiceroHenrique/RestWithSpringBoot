@@ -1,66 +1,56 @@
 package br.com.chcosta.services;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import br.com.chcosta.model.Person;
+import br.com.chcosta.converter.DozerConverter;
+import br.com.chcosta.data.model.Person;
+import br.com.chcosta.data.vo.PersonVO;
+import br.com.chcosta.exception.ResourceNotFoundException;
+import br.com.chcosta.repository.PersonRepository;
 
 @Service
 public class PersonServices {
 
-   private final AtomicLong counter = new AtomicLong();
+   @Autowired
+   PersonRepository repository;
 
-   public Person create(Person person) {
-      return person;
+   public PersonVO create(PersonVO person) {
+      var entity = DozerConverter.parseObject(person, Person.class);
+      var vo = DozerConverter.parseObject(repository.save(entity), PersonVO.class);
+      return vo;
    }
 
-   public Person update(Person person) {
-      return person;
+   public List<PersonVO> findAll() {
+      return DozerConverter.parseListObjects(repository.findAll(), PersonVO.class);
    }
 
-   public void delete(String id) {
+   public PersonVO findById(Long id) {
+      var entity = repository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("No Records found for this ID"));
+      return DozerConverter.parseObject(entity, PersonVO.class);
    }
 
-   public Person findById(String id) {
+   public PersonVO update(PersonVO person) {
+      var entity = repository.findById(person.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("No Records found for this ID"));
 
-      Person person = new Person();
+      entity.setFirstName(person.getFirstName());
+      entity.setLastName(person.getLastName());
+      entity.setAddress(person.getAddress());
+      entity.setGender(person.getGender());
 
-      person.setId(counter.incrementAndGet());
-      person.setFirstName("Henrique");
-      person.setLastName("Costa");
-      person.setAddress("Fortaleza - Ceará - Brasil");
-      person.setGender("Male");
-
-      return person;
-
+      var vo = DozerConverter.parseObject(repository.save(entity), PersonVO.class);
+      return vo;
    }
 
-   public List<Person> findAll() {
+   public void delete(Long id) {
+      Person entity = repository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("No Records found for this ID"));
 
-      List<Person> persons = new ArrayList<Person>();
-      for (int i = 0; i < 8; i++) {
-         Person person = mockPerson(i);
-         persons.add(person);
-      }
-
-      return persons;
-
-   }
-
-   private Person mockPerson(int i) {
-
-      Person person = new Person();
-
-      person.setId(counter.incrementAndGet());
-      person.setFirstName("Person Name " + i);
-      person.setLastName("Last Name " + i);
-      person.setAddress("Person Address " + i);
-      person.setGender("Male");
-
-      return person;
+      repository.delete(entity);
    }
 
 }
